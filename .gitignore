@@ -1,0 +1,9 @@
+node_modules/
+dist/
+build/
+release/
+.npm-cache
+.vite
+*.local
+.DS_Store
+Thumbs.db
