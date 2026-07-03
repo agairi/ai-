@@ -6,6 +6,7 @@ import { SKILLS_WITH_META } from '../data/skillsAndCareers';
 import { getSkillLevelWithBreakthrough, EXP_CONFIG, getStreakBonus } from '../utils/skillLevels';
 import { DEFAULT_ENABLED_SOURCES, type SearchSource } from '../utils/searchApi';
 import { DEFAULT_AI_CONFIG, type AiProviderConfig } from '../utils/localAiService';
+import type { Quiz, QuizResult } from '../utils/quizService';
 
 // 本地类型定义
 type Skill = {
@@ -94,6 +95,10 @@ type AppState = {
   };
   // 本地AI配置
   aiConfig: AiProviderConfig;
+  // 测验历史记录
+  quizHistory: QuizResult[];
+  // 保存的测验（可重复使用）
+  savedQuizzes: Quiz[];
 };
 
 interface AppStore extends AppState {
@@ -136,6 +141,11 @@ interface AppStore extends AppState {
   // Data import/export
   exportData: () => string;
   importData: (json: string) => boolean;
+
+  // Quiz actions
+  addQuizResult: (result: QuizResult) => void;
+  saveQuiz: (quiz: Quiz) => void;
+  deleteQuiz: (quizId: string) => void;
 }
 
 const initialSkills: Skill[] = SKILLS_WITH_META.map(skill => ({
@@ -170,6 +180,8 @@ export const useStore = create<AppStore>()(
         webSearchEnabled: false,
       },
       aiConfig: { ...DEFAULT_AI_CONFIG },
+      quizHistory: [],
+      savedQuizzes: [],
 
       addPlan: (plan) => {
         const id = uuidv4();
@@ -550,6 +562,24 @@ export const useStore = create<AppStore>()(
       updateAiConfig: (updates) => {
         set((state) => ({
           aiConfig: { ...state.aiConfig, ...updates },
+        }));
+      },
+
+      addQuizResult: (result) => {
+        set((state) => ({
+          quizHistory: [result, ...state.quizHistory].slice(0, 100),
+        }));
+      },
+
+      saveQuiz: (quiz) => {
+        set((state) => ({
+          savedQuizzes: [quiz, ...state.savedQuizzes].slice(0, 50),
+        }));
+      },
+
+      deleteQuiz: (quizId) => {
+        set((state) => ({
+          savedQuizzes: state.savedQuizzes.filter((q) => q.id !== quizId),
         }));
       },
 
