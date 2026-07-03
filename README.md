@@ -1,32 +1,131 @@
-# React + TypeScript + Vite
+# 📚 学习计划助手
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+一个全功能的学习管理与规划工具，帮助你高效规划学习路径、追踪技能成长、获取 AI 推荐。
 
-Currently, two official plugins are available:
+## ✨ 核心功能
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+### 📊 仪表盘
+- 学习时长统计、任务完成率、技能排行榜
+- 近7天学习时长可视化图表
+- 一键开始学习计时
 
-## React Compiler
+### 📝 学习计划
+- 创建学习计划，拆解任务，关联技能
+- 任务计时器（自动记录学习时长并转换为技能经验）
+- 任务笔记功能，记录学习心得
+- 优先级与截止日期管理
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### 🗓️ 日历视图
+- 按日期查看任务安排
+- 学习记录时间线
 
-## Expanding the Oxlint configuration
+### 🎯 技能面板
+- 150+ 技能库，覆盖编程、前端、后端、数据库、AI、DevOps、数据分析、移动开发、网络安全等领域
+- 技能等级与经验系统（含突破机制）
+- 技能树知识点掌握追踪
+- 按分类筛选与排序
 
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
+### 💼 职业路径
+- 职业方向推荐
+- 职业项目实践
 
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+### 📁 项目目标
+- 按技能难度分级的实战项目
+- 完成项目解锁技能突破
+
+### 🤖 AI 推荐
+- 智能搜索：支持关键词、别名匹配，覆盖 152 个技能的学习资源
+- 搜索筛选：按分类、难度筛选结果
+- 搜索排序：按匹配度、难度、学习时间排序
+- 搜索历史：自动记录最近搜索
+- AI 对话：本地 AI（Ollama）支持，智能学习建议
+- 路线规划：自动生成学习路线图
+- 一键创建计划：搜索结果直接生成学习计划，自动填充学习路径任务
+- API 搜索扩展：支持 SerpAPI、Google Custom Search、自定义 API
+
+### 📈 学习报告
+- 30天学习时长柱状图
+- 技能分布雷达图
+- 任务完成率、活跃技能数、本周学习天数统计
+
+### 💾 数据管理
+- 数据导出（JSON 备份）
+- 数据导入（一键恢复）
+- 本地持久化存储
+
+## 🛠️ 技术栈
+
+- **React** + **TypeScript**
+- **Zustand** 状态管理（持久化存储）
+- **Recharts** 数据可视化
+- **Lucide Icons** 图标
+- **Vite** 构建工具
+
+## 🚀 快速开始
+
+```bash
+# 安装依赖
+npm install
+
+# 启动开发服务器
+npm run dev
+
+# 构建生产版本
+npm run build
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+## 📁 项目结构
+
+```
+src/
+├── components/          # 页面组件
+│   ├── Dashboard.tsx       # 仪表盘
+│   ├── PlansPage.tsx       # 计划列表
+│   ├── PlanEditor.tsx      # 计划编辑器
+│   ├── CalendarView.tsx    # 日历视图
+│   ├── SkillDashboard.tsx # 技能面板
+│   ├── CareerPage.tsx      # 职业路径
+│   ├── ProjectGoals.tsx    # 项目目标
+│   ├── AIRecommend.tsx     # AI推荐与搜索
+│   ├── StudyReport.tsx     # 学习报告
+│   └── Modal.tsx           # 统一模态框
+├── store/                # 状态管理
+├── data/                 # 数据源（技能、资源、项目）
+├── utils/                # 工具函数
+└── App.css / api-styles.css  # 样式
+```
+
+## 📝 更新日志
+
+### v2.0 - 全面优化升级
+
+**🎨 UI 修复**
+- 统一模态框组件，彻底修复穿模问题
+- z-index 层级规范、ESC 关闭、滚动锁定、聚焦管理
+
+**🔍 搜索增强**
+- 补齐 17 个缺失技能，学习资源库覆盖 152 个技能
+- 新增搜索筛选器（分类、难度）
+- 新增搜索排序（匹配度、难度、学习时间）
+- 新增搜索历史记录功能
+
+**🔗 功能互联**
+- 搜索结果一键创建学习计划，自动将学习路径转为任务并关联技能
+- 任务完成自动给关联技能加经验
+
+**✨ 新功能**
+- 任务笔记：每个任务支持添加学习笔记
+- 数据导入导出：JSON 备份与恢复
+- 学习报告：30天柱状图 + 技能雷达图 + 统计概览
+
+### v1.0 - 初始版本
+
+- 基础学习计划管理
+- 技能面板与等级系统
+- AI 推荐与搜索
+- 日历视图
+- 项目目标
+
+## 📄 License
+
+MIT
