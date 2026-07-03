@@ -69,6 +69,8 @@ export const QuizPage: React.FC<QuizPageProps> = ({ initialSkillId, onNavigate }
         difficulty,
         questionCount,
         aiConfig,
+        undefined,
+        skill.category,
       );
       setCurrentQuiz(quiz);
       setAnswers({});

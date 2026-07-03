@@ -16,6 +16,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Brain,
+  RotateCcw,
 } from 'lucide-react';
 import { useStore } from '../store';
 
@@ -46,7 +47,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   collapsed,
   onToggleCollapse,
 }) => {
-  const { exportData, importData } = useStore();
+  const { exportData, importData, resetAllData } = useStore();
   const [searchQuery, setSearchQuery] = useState('');
 
   const handleExport = () => {
@@ -76,6 +77,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
       reader.readAsText(file);
     };
     input.click();
+  };
+
+  const handleReset = () => {
+    if (confirm('确定要重置所有学习记录吗？\n\n将清空：学习计划、技能进度、学习记录、统计数据、测验记录等。\n\n此操作不可撤销，建议先导出备份！')) {
+      resetAllData();
+      alert('已重置所有学习记录');
+    }
   };
 
   const handleSearch = (e: React.KeyboardEvent) => {
@@ -145,6 +153,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <button className="data-btn" onClick={handleImport} title="导入数据">
               <Upload size={16} />
               <span>导入</span>
+            </button>
+            <button className="data-btn reset-btn" onClick={handleReset} title="重置数据">
+              <RotateCcw size={16} />
+              <span>重置</span>
             </button>
           </div>
         )}

@@ -141,6 +141,7 @@ interface AppStore extends AppState {
   // Data import/export
   exportData: () => string;
   importData: (json: string) => boolean;
+  resetAllData: () => void;
 
   // Quiz actions
   addQuizResult: (result: QuizResult) => void;
@@ -624,6 +625,27 @@ export const useStore = create<AppStore>()(
         } catch {
           return false;
         }
+      },
+
+      resetAllData: () => {
+        set({
+          plans: [],
+          skills: initialSkills,
+          sessions: [],
+          stats: {
+            totalStudyTime: 0,
+            totalTasks: 0,
+            completedTasks: 0,
+            currentStreak: 0,
+            longestStreak: 0,
+          },
+          completedProjects: {},
+          masteredSkillNodes: {},
+          apiSettings: { enabledSources: DEFAULT_ENABLED_SOURCES, webSearchEnabled: false },
+          aiConfig: { ...DEFAULT_AI_CONFIG },
+          quizHistory: [],
+          savedQuizzes: [],
+        });
       },
     }),
     {

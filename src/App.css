@@ -207,6 +207,12 @@ body {
   color: #e2e8f0;
 }
 
+.data-btn.reset-btn:hover {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: #ef4444;
+  color: #ef4444;
+}
+
 /* 主内容区 */
 .main-content {
   flex: 1;
