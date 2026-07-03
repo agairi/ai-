@@ -3090,11 +3090,6 @@ body {
   filter: drop-shadow(0 0 4px rgba(34, 197, 94, 0.5));
 }
 
-.search-box {
-  display: flex;
-  gap: 8px;
-}
-
 /* ===== 全网搜索结果 ===== */
 .web-search-results {
   margin-top: 20px;
@@ -5944,7 +5939,7 @@ body {
 .result-title {
   font-size: 16px;
   color: #e2e8f0;
-  margin-bottom: 6px;
+  margin: 0;
 }
 
 .result-meta-row {
