@@ -1,26 +1,32 @@
 /**
  * 本地智能搜索引擎
  * 支持自然语言查询、关联推荐、难度匹配、搜索结果排序
+ * 基于用户画像的智能推荐算法
  */
 
 import { LEARNING_RESOURCE_DB, type LearningResourceEntry } from '../data/learningResources';
 
-// 搜索结果类型
 export type SearchResult = {
   entry: LearningResourceEntry;
-  score: number; // 匹配分数 0-100
-  matchReasons: string[]; // 匹配原因
-  recommendedPhase?: number; // 推荐从哪个阶段开始（基于用户水平）
+  score: number;
+  matchReasons: string[];
+  recommendedPhase?: number;
+  recommendationType?: 'personalized' | 'popular' | 'related' | 'beginner' | 'advanced';
 };
 
-// 用户技能上下文
 export type UserSkillContext = {
   skillId: string;
   level: number;
   totalExp: number;
 };
 
-// 意图识别关键词映射
+export type SearchSuggestion = {
+  text: string;
+  type: 'skill' | 'intent' | 'question' | 'resource';
+  icon: string;
+  score: number;
+};
+
 const INTENT_KEYWORDS: Record<string, string[]> = {
   'web前端': ['前端', '网页', '网站', 'web', 'frontend', '页面', 'html', 'css', 'javascript'],
   '后端开发': ['后端', '服务端', 'backend', 'server', 'api', '接口', '服务器'],
@@ -37,7 +43,6 @@ const INTENT_KEYWORDS: Record<string, string[]> = {
   '项目管理': ['项目管理', 'pmp', '敏捷', 'scrum', '需求'],
 };
 
-// 难度映射
 const DIFFICULTY_MAP: Record<string, number> = {
   '入门': 1,
   '简单': 2,
@@ -46,13 +51,19 @@ const DIFFICULTY_MAP: Record<string, number> = {
   '困难': 5,
 };
 
-// 分词：将查询拆分为关键词
+const LEARNING_ACTION_KEYWORDS = {
+  learn: ['学习', '学', '入门', '开始', '掌握', '精通', '了解', '熟悉'],
+  compare: ['对比', '比较', 'vs', '哪个好', '选哪个', '区别'],
+  path: ['路线', '规划', '路径', '怎么学', '学习路线', '学习计划'],
+  problem: ['怎么解决', '怎么办', '问题', '报错', 'bug', '错误', '解决'],
+  practice: ['练习', '实战', '项目', '实战项目', '练手'],
+  resource: ['资料', '教程', '视频', '书籍', '课程', '推荐'],
+  job: ['就业', '工作', '职业', '转行', '岗位'],
+};
+
 function tokenize(query: string): string[] {
-  // 移除标点符号，转为小写
   const cleaned = query.toLowerCase().replace(/[，。、！？,.!?;:：；""''（）()\[\]{}]/g, ' ');
-  // 按空格分词
   const tokens = cleaned.split(/\s+/).filter((t) => t.length > 0);
-  // 如果没有空格（中文连续输入），尝试按2-3字切分
   if (tokens.length === 1 && tokens[0].length > 3) {
     const subTokens: string[] = [tokens[0]];
     for (let i = 0; i < tokens[0].length - 1; i++) {
@@ -63,11 +74,9 @@ function tokenize(query: string): string[] {
   return tokens;
 }
 
-// 计算字符串相似度（编辑距离的简化版）
 function similarity(a: string, b: string): number {
   if (a === b) return 1;
   if (a.includes(b) || b.includes(a)) return 0.8;
-  // 简单的字符级 Jaccard 相似度
   const setA = new Set(a.split(''));
   const setB = new Set(b.split(''));
   const intersection = new Set([...setA].filter((x) => setB.has(x)));
@@ -75,7 +84,6 @@ function similarity(a: string, b: string): number {
   return intersection.size / union.size;
 }
 
-// 识别查询意图
 function detectIntent(query: string): string[] {
   const lowerQuery = query.toLowerCase();
   const intents: string[] = [];
@@ -90,39 +98,82 @@ function detectIntent(query: string): string[] {
   return intents;
 }
 
-// 主搜索函数
+function detectLearningAction(query: string): string[] {
+  const lowerQuery = query.toLowerCase();
+  const actions: string[] = [];
+  for (const [action, keywords] of Object.entries(LEARNING_ACTION_KEYWORDS)) {
+    for (const kw of keywords) {
+      if (lowerQuery.includes(kw.toLowerCase())) {
+        actions.push(action);
+        break;
+      }
+    }
+  }
+  return actions;
+}
+
+function getUserProficiencyLevel(userSkills: UserSkillContext[]): 'beginner' | 'intermediate' | 'advanced' {
+  if (userSkills.length === 0) return 'beginner';
+  const avgLevel = userSkills.reduce((sum, s) => sum + s.level, 0) / userSkills.length;
+  if (avgLevel < 2) return 'beginner';
+  if (avgLevel < 4) return 'intermediate';
+  return 'advanced';
+}
+
+function getCategoryDistribution(userSkills: UserSkillContext[]): Record<string, number> {
+  const dist: Record<string, number> = {};
+  for (const skill of userSkills) {
+    const entry = LEARNING_RESOURCE_DB.find((e) => e.skillId === skill.skillId);
+    if (entry) {
+      dist[entry.category] = (dist[entry.category] || 0) + skill.level;
+    }
+  }
+  return dist;
+}
+
+// 主搜索函数 - AI增强版
 export function smartSearch(
   query: string,
   userSkills?: UserSkillContext[]
 ): SearchResult[] {
   const tokens = tokenize(query);
   const intents = detectIntent(query);
+  const actions = detectLearningAction(query);
+  const proficiency = userSkills ? getUserProficiencyLevel(userSkills) : 'beginner';
+  const categoryDist = userSkills ? getCategoryDistribution(userSkills) : {};
   const results: SearchResult[] = [];
 
   for (const entry of LEARNING_RESOURCE_DB) {
     let score = 0;
     const reasons: string[] = [];
+    const recommendationTypes: SearchResult['recommendationType'][] = [];
 
+    // ========== 语义理解层 ==========
+    
     // 1. 精确匹配 skillId
     if (tokens.some((t) => t.toLowerCase() === entry.skillId.toLowerCase())) {
       score += 40;
       reasons.push('ID精确匹配');
     }
 
-    // 2. 匹配技能名称
+    // 2. 匹配技能名称（支持模糊匹配）
     for (const token of tokens) {
-      if (entry.skillName.toLowerCase().includes(token.toLowerCase())) {
+      const sim = similarity(entry.skillName.toLowerCase(), token.toLowerCase());
+      if (sim >= 0.6) {
+        score += Math.round(sim * 35);
+        if (!reasons.includes('名称匹配')) reasons.push('名称匹配');
+      } else if (entry.skillName.toLowerCase().includes(token.toLowerCase())) {
         score += 30;
         if (!reasons.includes('名称匹配')) reasons.push('名称匹配');
       }
     }
 
-    // 3. 匹配别名
+    // 3. 匹配别名（加权相似度）
     for (const alias of entry.aliases) {
       for (const token of tokens) {
         const sim = similarity(alias.toLowerCase(), token.toLowerCase());
-        if (sim > 0.6) {
-          score += Math.round(sim * 25);
+        if (sim > 0.5) {
+          score += Math.round(sim * 30);
           if (!reasons.includes('关键词匹配')) reasons.push('关键词匹配');
         }
       }
@@ -131,7 +182,7 @@ export function smartSearch(
     // 4. 匹配描述
     for (const token of tokens) {
       if (entry.description.toLowerCase().includes(token.toLowerCase())) {
-        score += 10;
+        score += 12;
         if (!reasons.includes('描述相关')) reasons.push('描述相关');
       }
     }
@@ -139,25 +190,18 @@ export function smartSearch(
     // 5. 匹配分类
     for (const token of tokens) {
       if (entry.category.toLowerCase().includes(token.toLowerCase())) {
-        score += 15;
+        score += 18;
         if (!reasons.includes('分类相关')) reasons.push('分类相关');
       }
     }
 
-    // 6. 意图匹配
+    // 6. 意图匹配（增强版）
     for (const intent of intents) {
       const intentKeywords = INTENT_KEYWORDS[intent] || [];
-      // 如果技能的别名/名称/分类与意图关键词有交集
-      const allText = (
-        entry.skillName +
-        ' ' +
-        entry.category +
-        ' ' +
-        entry.aliases.join(' ')
-      ).toLowerCase();
+      const allText = (entry.skillName + ' ' + entry.category + ' ' + entry.aliases.join(' ')).toLowerCase();
       for (const kw of intentKeywords) {
         if (allText.includes(kw.toLowerCase())) {
-          score += 20;
+          score += 25;
           if (!reasons.includes(`属于「${intent}」方向`)) {
             reasons.push(`属于「${intent}」方向`);
           }
@@ -166,37 +210,91 @@ export function smartSearch(
       }
     }
 
-    // 7. 用户技能上下文加权
+    // ========== 学习行为理解 ==========
+    
+    // 7. 学习行为匹配
+    if (actions.includes('learn')) {
+      const skillLevel = DIFFICULTY_MAP[entry.difficulty] || 3;
+      const profMap = { beginner: 1, intermediate: 3, advanced: 4 };
+      const targetLevel = profMap[proficiency];
+      const difficultyDiff = Math.abs(skillLevel - targetLevel);
+      if (difficultyDiff <= 1) {
+        score += 15;
+        reasons.push('适合你的水平');
+        recommendationTypes.push(proficiency === 'beginner' ? 'beginner' : proficiency === 'advanced' ? 'advanced' : 'personalized');
+      }
+    }
+
+    if (actions.includes('practice') || actions.includes('project')) {
+      if (entry.category === '实操' || entry.category === '编程') {
+        score += 10;
+        reasons.push('适合实战练习');
+      }
+    }
+
+    if (actions.includes('resource') || actions.includes('path')) {
+      if (entry.learningPath && entry.learningPath.length > 2) {
+        score += 8;
+        reasons.push('学习资源丰富');
+      }
+    }
+
+    // ========== 用户画像加权 ==========
+    
+    // 8. 用户技能上下文加权
     if (userSkills && userSkills.length > 0) {
-      // 如果用户正在学这个技能，提高分数
       const userSkill = userSkills.find((s) => s.skillId === entry.skillId);
       if (userSkill) {
         score += 35;
         reasons.push('你正在学习');
+        recommendationTypes.push('personalized');
       }
 
-      // 如果是已学技能的相关技能，提高分数
       for (const userS of userSkills) {
         if (entry.prerequisites.includes(userS.skillId)) {
-          score += 25;
+          score += userS.level * 5;
           reasons.push('是你已学技能的进阶');
+          recommendationTypes.push('advanced');
         }
         if (entry.relatedSkills.includes(userS.skillId)) {
-          score += 20;
+          score += userS.level * 4;
           reasons.push('与你已学技能相关');
+          recommendationTypes.push('related');
         }
+      }
+
+      // 9. 兴趣领域匹配
+      const catScore = categoryDist[entry.category] || 0;
+      if (catScore > 0) {
+        score += catScore * 3;
+        reasons.push('你感兴趣的领域');
+        recommendationTypes.push('personalized');
+      }
+
+      // 10. 技能多样性推荐（避免过度集中在同一领域）
+      const userCategories = new Set(userSkills.map(s => {
+        const e = LEARNING_RESOURCE_DB.find(er => er.skillId === s.skillId);
+        return e?.category;
+      }).filter(Boolean));
+      if (!userCategories.has(entry.category) && userCategories.size >= 2) {
+        score += 10;
+        reasons.push('拓展新领域');
+      }
+    } else {
+      // 新手推荐热门技能
+      if (['python', 'javascript', 'html', 'css', 'git', 'sql'].includes(entry.skillId)) {
+        score += 15;
+        reasons.push('新手推荐');
+        recommendationTypes.push('beginner');
       }
     }
 
     if (score > 0) {
-      // 根据用户水平推荐起始阶段
       let recommendedPhase = 0;
       if (userSkills) {
         const userSkill = userSkills.find((s) => s.skillId === entry.skillId);
         if (userSkill) {
-          if (userSkill.level >= 5) recommendedPhase = 2;
-          else if (userSkill.level >= 2) recommendedPhase = 1;
-          else recommendedPhase = 0;
+          recommendedPhase = userSkill.level >= 5 ? 2 : userSkill.level >= 2 ? 1 : 0;
         }
       }
 
@@ -205,13 +303,135 @@ export function smartSearch(
         score: Math.min(100, score),
         matchReasons: reasons,
         recommendedPhase,
+        recommendationType: recommendationTypes[0] || 'popular',
       });
     }
   }
 
-  // 按分数排序
-  results.sort((a, b) => b.score - a.score);
+  // 智能排序：综合分数 + 多样性 + 时间衰减
+  results.sort((a, b) => {
+    let diff = b.score - a.score;
+    
+    // 如果分数相近，优先推荐用户没学过的技能
+    if (Math.abs(diff) < 10 && userSkills) {
+      const aLearned = userSkills.some(s => s.skillId === a.entry.skillId);
+      const bLearned = userSkills.some(s => s.skillId === b.entry.skillId);
+      if (!aLearned && bLearned) diff += 5;
+      if (aLearned && !bLearned) diff -= 5;
+    }
+    
+    // 优先推荐进阶技能
+    if (Math.abs(diff) < 5) {
+      if (a.recommendationType === 'advanced' && b.recommendationType !== 'advanced') diff += 3;
+      if (b.recommendationType === 'advanced' && a.recommendationType !== 'advanced') diff -= 3;
+    }
+    
+    return diff;
+  });
+
   return results;
+}
+
+// 获取搜索建议
+export function getSearchSuggestions(
+  query: string,
+  userSkills?: UserSkillContext[]
+): SearchSuggestion[] {
+  if (!query.trim() || query.length < 2) return [];
+  
+  const tokens = tokenize(query);
+  const suggestions: SearchSuggestion[] = [];
+  const seen = new Set<string>();
+
+  // 1. 技能名称建议
+  for (const entry of LEARNING_RESOURCE_DB) {
+    const matchText = (entry.skillName + ' ' + entry.skillId).toLowerCase();
+    for (const token of tokens) {
+      if (matchText.includes(token)) {
+        const sim = similarity(matchText, query.toLowerCase());
+        if (sim > 0.3 && !seen.has(entry.skillName)) {
+          suggestions.push({
+            text: entry.skillName,
+            type: 'skill',
+            icon: '🎯',
+            score: Math.round(sim * 100),
+          });
+          seen.add(entry.skillName);
+        }
+      }
+    }
+  }
+
+  // 2. 意图建议
+  for (const [intent, keywords] of Object.entries(INTENT_KEYWORDS)) {
+    for (const kw of keywords) {
+      if (kw.toLowerCase().includes(query.toLowerCase()) || query.toLowerCase().includes(kw.toLowerCase())) {
+        if (!seen.has(intent)) {
+          suggestions.push({
+            text: intent,
+            type: 'intent',
+            icon: '🔍',
+            score: 80,
+          });
+          seen.add(intent);
+        }
+      }
+    }
+  }
+
+  // 3. 学习行为建议
+  const actionTemplates: Record<string, string[]> = {
+    learn: ['学习 {skill}', '{skill} 入门', '精通 {skill}'],
+    compare: ['{skill} vs {other}', '{skill} 和 {other} 哪个好'],
+    path: ['{skill} 学习路线', '{skill} 怎么学'],
+    practice: ['{skill} 实战项目', '{skill} 练习题'],
+    resource: ['{skill} 教程推荐', '{skill} 学习资料'],
+  };
+
+  const topSkills = LEARNING_RESOURCE_DB.slice(0, 10);
+  for (const action of Object.keys(actionTemplates)) {
+    for (const kw of LEARNING_ACTION_KEYWORDS[action as keyof typeof LEARNING_ACTION_KEYWORDS] || []) {
+      if (query.toLowerCase().includes(kw.toLowerCase())) {
+        for (const skill of topSkills.slice(0, 3)) {
+          const template = actionTemplates[action][0].replace('{skill}', skill.skillName);
+          if (!seen.has(template)) {
+            suggestions.push({
+              text: template,
+              type: 'question',
+              icon: '💡',
+              score: 70,
+            });
+            seen.add(template);
+          }
+        }
+      }
+    }
+  }
+
+  // 4. 常见问题建议
+  const commonQuestions = [
+    '怎么入门编程',
+    '前端学习路线',
+    'Python能做什么',
+    '推荐学习顺序',
+    '学编程需要什么基础',
+    '哪个编程语言好',
+  ];
+  for (const q of commonQuestions) {
+    if (q.includes(query) || query.includes(q)) {
+      if (!seen.has(q)) {
+        suggestions.push({
+          text: q,
+          type: 'question',
+          icon: '❓',
+          score: 65,
+        });
+        seen.add(q);
+      }
+    }
+  }
+
+  return suggestions.sort((a, b) => b.score - a.score).slice(0, 8);
 }
 
 // 获取推荐：基于用户已有技能推荐下一步学什么

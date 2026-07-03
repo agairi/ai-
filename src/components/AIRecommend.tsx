@@ -34,7 +34,9 @@ import {
   smartSearch,
   getRecommendations,
   getPopularSkills,
+  getSearchSuggestions,
   type SearchResult,
+  type SearchSuggestion,
 } from '../utils/smartSearch';
 import {
   generateResponse,
@@ -116,6 +118,8 @@ export const AIRecommend: React.FC<AIRecommendProps> = ({ onNewPlan }) => {
       return [];
     }
   });
+  // 搜索建议
+  const [searchSuggestions, setSearchSuggestions] = useState<SearchSuggestion[]>([]);
 
   // ===== 每日推送状态 =====
   const [dailyPush, setDailyPush] = useState<DailyPush | null>(null);
@@ -320,22 +324,20 @@ export const AIRecommend: React.FC<AIRecommendProps> = ({ onNewPlan }) => {
     setSelectedCategory('');
     setSelectedDifficulty('');
     setSortBy('score');
+    setSearchSuggestions([]);
 
-    // 保存搜索历史
     setSearchHistory((prev) => {
       const newHistory = [query, ...prev.filter((q) => q !== query)].slice(0, 10);
       localStorage.setItem('searchHistory', JSON.stringify(newHistory));
       return newHistory;
     });
 
-    // 本地智能搜索
     setTimeout(() => {
       const results = smartSearch(query, userSkillContext);
       setSearchResults(results);
       setSearching(false);
     }, 300);
 
-    // 全网搜索（如果开启）
     if (apiSettings.webSearchEnabled && apiSettings.enabledSources.length > 0) {
       setWebSearching(true);
       webSearch(query, apiSettings as ApiConfig).then((results) => {
@@ -350,11 +352,22 @@ export const AIRecommend: React.FC<AIRecommendProps> = ({ onNewPlan }) => {
     setSearching(true);
     setHasSearched(true);
     setExpandedResult(keyword);
+    setSearchSuggestions([]);
     setTimeout(() => {
       const results = smartSearch(keyword, userSkillContext);
       setSearchResults(results);
       setSearching(false);
     }, 300);
+  };
+
+  const handleSearchInputChange = (value: string) => {
+    setQuery(value);
+    if (value.trim().length >= 2) {
+      const suggestions = getSearchSuggestions(value, userSkillContext);
+      setSearchSuggestions(suggestions);
+    } else {
+      setSearchSuggestions([]);
+    }
   };
 
   // ===== 工具函数 =====
@@ -696,21 +709,51 @@ export const AIRecommend: React.FC<AIRecommendProps> = ({ onNewPlan }) => {
 
     return (
       <div className="search-container">
-        <div className="search-box">
-          <input
-            type="text"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="输入你想学的技术，如：Python、前端、机器学习、怎么做网站..."
-            onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-          />
-          <button className="search-btn" onClick={handleSearch} disabled={searching}>
-            <Search size={20} />
-            {searching ? '搜索中...' : '搜索'}
-          </button>
-          <button className="api-settings-btn" onClick={() => setShowApiSettings(true)} title="API搜索设置">
-            {apiSettings.webSearchEnabled ? <Globe size={18} className="glow" /> : <Globe size={18} />}
-          </button>
+        <div className="search-box-wrapper">
+          <div className="search-box">
+            <input
+              type="text"
+              value={query}
+              onChange={(e) => handleSearchInputChange(e.target.value)}
+              placeholder="输入你想学的技术，如：Python、前端、机器学习、怎么做网站..."
+              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+              onBlur={() => setTimeout(() => setSearchSuggestions([]), 200)}
+              onFocus={() => query.trim().length >= 2 && setSearchSuggestions(getSearchSuggestions(query, userSkillContext))}
+            />
+            <button className="search-btn" onClick={handleSearch} disabled={searching}>
+              <Search size={20} />
+              {searching ? '搜索中...' : '搜索'}
+            </button>
+            <button className="api-settings-btn" onClick={() => setShowApiSettings(true)} title="API搜索设置">
+              {apiSettings.webSearchEnabled ? <Globe size={18} className="glow" /> : <Globe size={18} />}
+            </button>
+          </div>
+
+          {/* 搜索建议下拉 */}
+          {searchSuggestions.length > 0 && (
+            <div className="search-suggestions-dropdown">
+              {searchSuggestions.map((suggestion, idx) => (
+                <button
+                  key={idx}
+                  className="suggestion-item"
+                  onClick={() => {
+                    setQuery(suggestion.text);
+                    setSearchSuggestions([]);
+                    handleSearch();
+                  }}
+                >
+                  <span className="suggestion-icon">{suggestion.icon}</span>
+                  <span className="suggestion-text">{suggestion.text}</span>
+                  <span className="suggestion-type">
+                    {suggestion.type === 'skill' && '技能'}
+                    {suggestion.type === 'intent' && '方向'}
+                    {suggestion.type === 'question' && '问题'}
+                    {suggestion.type === 'resource' && '资源'}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="hot-skills">
@@ -867,13 +910,33 @@ export const AIRecommend: React.FC<AIRecommendProps> = ({ onNewPlan }) => {
                   
                   return filtered.slice(0, 15);
                 })().map((result) => {
-                  const { entry, score, matchReasons, recommendedPhase = 0 } = result;
+                  const { entry, score, matchReasons, recommendedPhase = 0, recommendationType } = result;
                   const isExpanded = expandedResult === entry.skillId;
+                  
+                  const getRecommendationBadge = () => {
+                    const badges = {
+                      personalized: { text: '✨ 个性化推荐', color: '#8b5cf6' },
+                      popular: { text: '🔥 热门技能', color: '#f97316' },
+                      related: { text: '🔗 相关推荐', color: '#3b82f6' },
+                      beginner: { text: '🌱 新手入门', color: '#22c55e' },
+                      advanced: { text: '🚀 进阶推荐', color: '#ec4899' },
+                    };
+                    const badge = badges[recommendationType || 'popular'];
+                    return badge ? (
+                      <span className="recommendation-badge" style={{ backgroundColor: badge.color + '20', color: badge.color, borderColor: badge.color }}>
+                        {badge.text}
+                      </span>
+                    ) : null;
+                  };
+
                   return (
                     <div key={entry.skillId} className="smart-result-card">
                       <div className="result-header" onClick={() => setExpandedResult(isExpanded ? null : entry.skillId)}>
                         <div className="result-main">
-                          <h3 className="result-title">{entry.skillName}</h3>
+                          <div className="result-title-row">
+                            <h3 className="result-title">{entry.skillName}</h3>
+                            {getRecommendationBadge()}
+                          </div>
                           <div className="result-meta-row">
                             <span className="result-category">{entry.category}</span>
                             {renderDifficulty(entry.difficulty)}
