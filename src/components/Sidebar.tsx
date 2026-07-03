@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   LayoutDashboard,
   Calendar,
@@ -12,6 +12,9 @@ import {
   Download,
   Upload,
   FileText,
+  Search,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import { useStore } from '../store';
 
@@ -19,6 +22,8 @@ interface SidebarProps {
   currentPage: string;
   setCurrentPage: (page: string) => void;
   onNewPlan: () => void;
+  collapsed: boolean;
+  onToggleCollapse: () => void;
 }
 
 const menuItems = [
@@ -36,8 +41,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
   currentPage,
   setCurrentPage,
   onNewPlan,
+  collapsed,
+  onToggleCollapse,
 }) => {
   const { exportData, importData } = useStore();
+  const [searchQuery, setSearchQuery] = useState('');
 
   const handleExport = () => {
     const data = exportData();
@@ -68,11 +76,41 @@ export const Sidebar: React.FC<SidebarProps> = ({
     input.click();
   };
 
+  const handleSearch = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && searchQuery.trim()) {
+      setCurrentPage('ai');
+      setSearchQuery('');
+    }
+  };
+
   return (
-    <aside className="sidebar">
+    <aside className={`sidebar ${collapsed ? 'collapsed' : ''}`}>
       <div className="sidebar-header">
-        <h1>📚 学习计划助手</h1>
+        <h1 className="sidebar-title">
+          {collapsed ? '📚' : '📚 学习计划助手'}
+        </h1>
+        <button
+          className="sidebar-collapse-btn"
+          onClick={onToggleCollapse}
+          title={collapsed ? '展开' : '收起'}
+        >
+          {collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
+        </button>
       </div>
+
+      {!collapsed && (
+        <div className="sidebar-search">
+          <Search size={16} className="sidebar-search-icon" />
+          <input
+            type="text"
+            placeholder="搜索..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onKeyDown={handleSearch}
+            onFocus={() => setCurrentPage('ai')}
+          />
+        </div>
+      )}
       
       <nav className="sidebar-nav">
         {menuItems.map((item) => {
@@ -82,6 +120,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               key={item.id}
               className={`nav-item ${currentPage === item.id ? 'active' : ''}`}
               onClick={() => setCurrentPage(item.id)}
+              title={collapsed ? item.label : ''}
             >
               <Icon size={20} />
               <span>{item.label}</span>
@@ -91,20 +130,22 @@ export const Sidebar: React.FC<SidebarProps> = ({
       </nav>
       
       <div className="sidebar-footer">
-        <button className="new-plan-btn" onClick={onNewPlan}>
+        <button className="new-plan-btn" onClick={onNewPlan} title={collapsed ? '新建计划' : ''}>
           <PlusCircle size={20} />
-          <span>新建计划</span>
+          {!collapsed && <span>新建计划</span>}
         </button>
-        <div className="sidebar-data-actions">
-          <button className="data-btn" onClick={handleExport} title="导出数据">
-            <Download size={16} />
-            <span>导出</span>
-          </button>
-          <button className="data-btn" onClick={handleImport} title="导入数据">
-            <Upload size={16} />
-            <span>导入</span>
-          </button>
-        </div>
+        {!collapsed && (
+          <div className="sidebar-data-actions">
+            <button className="data-btn" onClick={handleExport} title="导出数据">
+              <Download size={16} />
+              <span>导出</span>
+            </button>
+            <button className="data-btn" onClick={handleImport} title="导入数据">
+              <Upload size={16} />
+              <span>导入</span>
+            </button>
+          </div>
+        )}
       </div>
     </aside>
   );

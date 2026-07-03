@@ -19,6 +19,7 @@ function App() {
   const [currentPage, setCurrentPage] = useState('dashboard');
   const [showPlanEditor, setShowPlanEditor] = useState(false);
   const [editPlanId, setEditPlanId] = useState<string | undefined>(undefined);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   const handleNewPlan = () => {
     setEditPlanId(undefined);
@@ -38,7 +39,7 @@ function App() {
   const renderPage = () => {
     switch (currentPage) {
       case 'dashboard':
-        return <Dashboard />;
+        return <Dashboard onNavigate={setCurrentPage} onNewPlan={handleNewPlan} />;
       case 'plans':
         return <PlansPage onEditPlan={handleEditPlan} onNewPlan={handleNewPlan} />;
       case 'calendar':
@@ -59,11 +60,13 @@ function App() {
   };
 
   return (
-    <div className="app">
+    <div className={`app ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
       <Sidebar
         currentPage={currentPage}
         setCurrentPage={setCurrentPage}
         onNewPlan={handleNewPlan}
+        collapsed={sidebarCollapsed}
+        onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
       />
 
       <main className="main-content">

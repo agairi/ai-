@@ -110,6 +110,71 @@ export const SkillDashboard: React.FC<SkillDashboardProps> = ({ onNavigate }) =>
 
       <p className="page-desc">按分类浏览技能，点击展开查看详情</p>
 
+      {/* 技能总览统计 */}
+      <div className="skill-overview">
+        {(() => {
+          const totalSkills = skills.length;
+          const activeSkills = skills.filter((s) => s.totalExp > 0).length;
+          const totalExp = skills.reduce((sum, s) => sum + s.totalExp, 0);
+          const avgLevel = totalSkills > 0 ? (skills.reduce((sum, s) => sum + s.level, 0) / totalSkills).toFixed(1) : '0';
+          const maxLevelSkills = skills.filter((s) => s.level >= 10).length;
+          const breakthroughCount = skills.reduce((sum, s) => sum + (s.breakthroughs?.length || 0), 0);
+
+          const overviewItems = [
+            { label: '总技能数', value: totalSkills, color: '#3b82f6' },
+            { label: '在学技能', value: activeSkills, color: '#22c55e' },
+            { label: '平均等级', value: avgLevel, color: '#8b5cf6' },
+            { label: '总经验', value: totalExp, color: '#f59e0b' },
+            { label: '满级技能', value: maxLevelSkills, color: '#ef4444' },
+            { label: '突破次数', value: breakthroughCount, color: '#ec4899' },
+          ];
+
+          return overviewItems.map((item) => (
+            <div key={item.label} className="skill-overview-item">
+              <span className="overview-value" style={{ color: item.color }}>{item.value}</span>
+              <span className="overview-label">{item.label}</span>
+            </div>
+          ));
+        })()}
+      </div>
+
+      {/* 等级分布可视化 */}
+      <div className="skill-level-distribution">
+        <h3 className="distribution-title">
+          <TrendingUp size={16} />
+          等级分布
+        </h3>
+        <div className="distribution-bars">
+          {(() => {
+            const levels = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+            const counts = levels.map((lv) => skills.filter((s) => s.level === lv).length);
+            const maxCount = Math.max(...counts, 1);
+            return levels.map((lv, idx) => {
+              const count = counts[idx];
+              const heightPercent = (count / maxCount) * 100;
+              const color =
+                lv >= 9 ? '#ef4444' :
+                lv >= 7 ? '#f59e0b' :
+                lv >= 5 ? '#8b5cf6' :
+                lv >= 3 ? '#3b82f6' :
+                '#22c55e';
+              return (
+                <div key={lv} className="distribution-bar-item" title={`Lv.${lv}: ${count} 个技能`}>
+                  <div className="distribution-bar-track">
+                    <div
+                      className="distribution-bar-fill"
+                      style={{ height: `${heightPercent}%`, background: color }}
+                    />
+                  </div>
+                  <span className="distribution-count">{count}</span>
+                  <span className="distribution-label">Lv.{lv}</span>
+                </div>
+              );
+            });
+          })()}
+        </div>
+      </div>
+
       <div className="skill-filters">
         <div className="filter-group">
           <label>类型</label>
