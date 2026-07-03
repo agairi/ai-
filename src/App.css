@@ -5930,16 +5930,42 @@ body {
   gap: 16px;
   padding: 16px;
   cursor: pointer;
+  min-width: 0;
 }
 
 .result-main {
   flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.result-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+  flex-wrap: wrap;
 }
 
 .result-title {
   font-size: 16px;
   color: #e2e8f0;
   margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-shrink: 1;
+  min-width: 0;
+}
+
+.recommendation-badge {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 6px;
+  border: 1px solid;
+  font-weight: 500;
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .result-meta-row {
