@@ -17,6 +17,7 @@ import {
   ChevronRight,
   Brain,
   RotateCcw,
+  GraduationCap,
 } from 'lucide-react';
 import { useStore } from '../store';
 
@@ -36,6 +37,7 @@ const menuItems = [
   { id: 'careers', label: '职业路径', icon: Briefcase },
   { id: 'projectGoals', label: '项目目标', icon: FolderKanban },
   { id: 'ai', label: 'AI推荐', icon: Sparkles },
+  { id: 'teaching', label: 'AI教学', icon: GraduationCap },
   { id: 'quiz', label: 'AI测验', icon: Brain },
   { id: 'report', label: '学习报告', icon: FileText },
 ];

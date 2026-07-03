@@ -15,6 +15,7 @@ const AIRecommend = lazy(() => import('./components/AIRecommend').then(m => ({ d
 const ProjectGoals = lazy(() => import('./components/ProjectGoals').then(m => ({ default: m.ProjectGoals })));
 const StudyReport = lazy(() => import('./components/StudyReport').then(m => ({ default: m.StudyReport })));
 const QuizPage = lazy(() => import('./components/QuizPage').then(m => ({ default: m.QuizPage })));
+const TeachingPage = lazy(() => import('./components/TeachingPage').then(m => ({ default: m.TeachingPage })));
 
 function App() {
   const [currentPage, setCurrentPage] = useState('dashboard');
@@ -53,6 +54,8 @@ function App() {
         return <ProjectGoals />;
       case 'ai':
         return <AIRecommend onNewPlan={handleNewPlan} />;
+      case 'teaching':
+        return <TeachingPage onNavigate={setCurrentPage} />;
       case 'report':
         return <StudyReport />;
       case 'quiz':
