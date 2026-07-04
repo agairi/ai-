@@ -2,6 +2,10 @@
 
 一个全功能的学习管理与规划工具，帮助你高效规划学习路径、追踪技能成长、获取 AI 推荐。
 
+> 📌 在线预览：克隆后运行 `npm run dev`，浏览器打开 http://localhost:5173/
+> 🖥️ 桌面版：双击 `启动应用.bat` 自动打开独立窗口（无需打开浏览器标签页）
+> 📲 PWA：可「安装到桌面」作为独立应用，离线也能用
+
 ## ✨ 核心功能
 
 ### 📊 仪表盘
@@ -64,8 +68,12 @@
 - **Recharts** 数据可视化
 - **Lucide Icons** 图标
 - **Vite** 构建工具
+- **vite-plugin-pwa** PWA 离线应用支持
+- **本地 AI 集成**：支持 Ollama、OpenAI 兼容 API（DeepSeek / 硅基流动等）
 
 ## 🚀 快速开始
+
+### 方式一：开发者运行
 
 ```bash
 # 安装依赖
@@ -77,6 +85,20 @@ npm run dev
 # 构建生产版本
 npm run build
 ```
+
+### 方式二：桌面独立窗口（推荐普通用户）
+
+双击项目根目录下的 **`启动应用.bat`**：
+- 自动启动本地服务器
+- 自动打开 Edge / Chrome 独立窗口（无地址栏、无标签页，体验接近桌面软件）
+- 无需手动开浏览器，关窗口即退出
+
+### 方式三：安装为 PWA 应用
+
+1. 用浏览器打开应用后，点击地址栏右侧的 **「安装」图标**
+2. 或在浏览器菜单选择 **「安装此应用」**
+3. 安装后可在桌面/开始菜单找到「学习助手」图标，双击即可启动
+4. 支持**离线使用**，所有学习数据保存在本地
 
 ## 📖 使用方法
 
@@ -146,27 +168,70 @@ npm run build
 ## 📁 项目结构
 
 ```
-src/
-├── components/          # 页面组件
-│   ├── Dashboard.tsx       # 仪表盘
-│   ├── PlansPage.tsx       # 计划列表
-│   ├── PlanEditor.tsx      # 计划编辑器
-│   ├── CalendarView.tsx    # 日历视图
-│   ├── SkillDashboard.tsx # 技能面板
-│   ├── CareerPage.tsx      # 职业路径
-│   ├── ProjectGoals.tsx    # 项目目标
-│   ├── AIRecommend.tsx     # AI推荐与搜索
-│   ├── TeachingPage.tsx     # AI教学
-│   ├── QuizPage.tsx         # AI测验
-│   ├── StudyReport.tsx      # 学习报告
-│   └── Modal.tsx           # 统一模态框
-├── store/                # 状态管理
-├── data/                 # 数据源（技能、资源、项目）
-├── utils/                # 工具函数
-└── App.css / api-styles.css  # 样式
+study-app/
+├── src/
+│   ├── components/          # 页面组件
+│   │   ├── Dashboard.tsx       # 仪表盘
+│   │   ├── PlansPage.tsx       # 计划列表
+│   │   ├── PlanEditor.tsx      # 计划编辑器
+│   │   ├── CalendarView.tsx    # 日历视图
+│   │   ├── SkillDashboard.tsx # 技能面板
+│   │   ├── CareerPage.tsx      # 职业路径
+│   │   ├── ProjectGoals.tsx    # 项目目标
+│   │   ├── AIRecommend.tsx     # AI推荐与搜索
+│   │   ├── TeachingPage.tsx     # AI教学
+│   │   ├── QuizPage.tsx         # AI测验
+│   │   ├── StudyReport.tsx      # 学习报告
+│   │   ├── AiSettingsModal.tsx  # AI 设置
+│   │   ├── FloatingTimer.tsx    # 悬浮计时器
+│   │   └── Modal.tsx           # 统一模态框
+│   ├── store/                # 状态管理（Zustand）
+│   ├── data/                 # 数据源（技能、资源、项目）
+│   ├── utils/                # 工具函数
+│   │   ├── aiChatEngine.ts     # AI 对话引擎（混合模式）
+│   │   ├── localAiService.ts   # 本地 AI 服务
+│   │   ├── quizService.ts      # 测验服务
+│   │   ├── smartSearch.ts      # 智能搜索
+│   │   └── roadmapEngine.ts    # 路线规划
+│   └── App.css / api-styles.css  # 样式
+├── public/                   # PWA 图标等静态资源
+├── 启动应用.bat               # Windows 一键启动脚本
+├── vite.config.ts            # Vite + PWA 配置
+└── package.json
 ```
 
 ## 📝 更新日志
+
+### v3.0 - PWA 桌面应用与本地 AI 增强
+
+**📲 PWA 支持**
+- 新增 PWA（渐进式 Web 应用）支持，可「安装到桌面」作为独立应用
+- 支持**离线使用**，Service Worker 自动缓存所有资源
+- 自定义应用图标、启动画面、主题色
+
+**🖥️ 桌面独立窗口**
+- 新增 `启动应用.bat` 一键启动脚本
+- 自动检测 Edge / Chrome，以 app 模式打开（无地址栏、无标签页）
+- 独立进程运行，体验接近原生桌面软件
+
+**🤖 本地 AI 增强**
+- 重构 AI 连接测试，提供详细错误信息（超时、无模型、连接失败等）
+- 支持 Ollama 本地模型自动检测
+- 新增流式响应支持，打字机效果更自然
+- AI 状态实时追踪（离线/连接中/在线/错误）
+- 修复 Ollama 模型名配置错误
+
+**🎨 界面优化**
+- 匹配度显示改为徽章+进度条组合，颜色根据分数动态变化
+- 清理冗余文件，优化项目结构
+- Electron 主进程优化：`ready-to-show` 防白屏、禁用菜单栏、外链系统浏览器打开
+- 窗口尺寸约束（1320×860，最小限制）
+- 添加明暗主题切换，自动持久化偏好
+
+**🔬 混合模式 AI 对话**
+- 新增 `generateResponseSmart` 智能路由函数
+- 根据问题复杂度自动选择本地引擎 / 大模型
+- 简单问题秒回，复杂问题走 AI 深度解答
 
 ### v2.5 - AI 测验与数据重置
 
