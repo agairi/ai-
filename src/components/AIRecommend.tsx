@@ -945,9 +945,24 @@ export const AIRecommend: React.FC<AIRecommendProps> = ({ onNewPlan }) => {
                           <p className="result-desc">{entry.description}</p>
                         </div>
                         <div className="result-side">
-                          <div className="result-score">
-                            <div className="score-bar"><div className="score-fill" style={{ width: `${score}%` }} /></div>
-                            <span className="score-text">{score}%匹配</span>
+                          <div className="match-score-ring" style={{ '--score': `${score}%`, '--score-color': score >= 80 ? '#22c55e' : score >= 60 ? '#f59e0b' : '#ef4444' } as React.CSSProperties}>
+                            <svg viewBox="0 0 36 36">
+                              <circle cx="18" cy="18" r="16" fill="none" stroke="#334155" strokeWidth="3" />
+                              <circle
+                                cx="18"
+                                cy="18"
+                                r="16"
+                                fill="none"
+                                stroke={score >= 80 ? '#22c55e' : score >= 60 ? '#f59e0b' : '#ef4444'}
+                                strokeWidth="3"
+                                strokeDasharray={`${(score / 100) * 100.53} 100.53`}
+                                strokeLinecap="round"
+                                transform="rotate(-90 18 18)"
+                                style={{ transition: 'stroke-dasharray 0.5s ease' }}
+                              />
+                            </svg>
+                            <span className="match-score-num">{score}</span>
+                            <span className="match-score-unit">%</span>
                           </div>
                           <span className="result-expand-icon">
                             {isExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
