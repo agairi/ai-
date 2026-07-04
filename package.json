@@ -2,14 +2,14 @@
   "name": "study-app",
   "private": true,
   "version": "1.0.0",
+  "description": "AI 驱动的学习计划助手 - 技能管理、AI教学、智能测验、学习路径规划",
+  "author": "",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
-    "preview": "vite preview",
-    "tauri:dev": "tauri dev",
-    "tauri:build": "tauri build"
+    "preview": "vite preview"
   },
   "dependencies": {
     "date-fns": "^4.4.0",
